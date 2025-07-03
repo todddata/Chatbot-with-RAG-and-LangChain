@@ -8,12 +8,15 @@ load_dotenv()
 
 # configuration
 DATA_PATH = r"data"
-CHROMA_PATH = r"chroma_db"
+CHROMA_PATH = r"chroma_db" 
 
 embeddings_model = OpenAIEmbeddings(model="text-embedding-3-large")
 
 # initiate the model
-llm = ChatOpenAI(temperature=0.5, model='gpt-4o-mini')
+# llm = ChatOpenAI(temperature=0.5, model='gpt-4o')
+
+# this is the second model I'm trying; it's lower cost to run
+llm = ChatOpenAI(temperature=1, model='o4-mini')
 
 # connect to the chromadb
 vector_store = Chroma(
@@ -23,7 +26,7 @@ vector_store = Chroma(
 )
 
 # Set up the vectorstore to be the retriever
-num_results = 5
+num_results = 20
 retriever = vector_store.as_retriever(search_kwargs={'k': num_results})
 
 # call this function for every message added to the chatbot
@@ -46,10 +49,9 @@ def stream_response(message, history):
         partial_message = ""
 
         rag_prompt = f"""
-        You are an assistent which answers questions based on knowledge which is provided to you.
+        You are an assistant which answers questions based on knowledge which is provided to you.
         While answering, you don't use your internal knowledge, 
         but solely the information in the "The knowledge" section.
-        You don't mention anything to the user about the povided knowledge.
 
         The question: {message}
 
@@ -67,11 +69,28 @@ def stream_response(message, history):
             yield partial_message
 
 # initiate the Gradio app
-chatbot = gr.ChatInterface(stream_response, textbox=gr.Textbox(placeholder="Send to the LLM...",
-    container=False,
-    autoscroll=True,
-    scale=7),
-)
+# chatbot = gr.ChatInterface(
+#     fn=stream_response,
+#     textbox=gr.Textbox(placeholder="Send to the LLM..."),
+#     chatbot=gr.Chatbot(value=[("Research Assistant", "Type a question to learn more about the Weigh and Win Community Weight Loss research study.")]),
+#     fill_height=True,
+#     autoscroll=True,
+# )
 
 # launch the Gradio app
-chatbot.launch()
+# chatbot.launch(share=True)
+
+import gradio as gr
+
+with gr.Blocks() as demo:
+    with gr.Column():
+        gr.Image("logo.png", height=258, width=500, show_label=False)
+        gr.ChatInterface(
+            fn=stream_response,
+            textbox=gr.Textbox(placeholder="Send to the LLM..."),
+            chatbot=gr.Chatbot(value=[("Chat with this JGIM Research Assistant!❤️", "Type a question to learn more about community weight loss.")]),
+            fill_height=True,
+            autoscroll=True,
+        )
+
+demo.launch(share=True)
